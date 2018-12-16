@@ -10,6 +10,16 @@ class Colour(Enum):
     WHITE = 5
 
 
+colour_strings = {
+    Colour.RED: "1",
+    Colour.BLUE: "4",
+    Colour.GREEN: "2",
+    Colour.YELLOW: "3",
+    Colour.PURPLE: "5",
+    Colour.WHITE: "9"
+}
+
+
 class Triangle(object):
     def __init__(self, colours: tuple, score: int):
         self.colours = colours
@@ -29,6 +39,7 @@ class Triangle(object):
         else:
             # This should not happen, but will work in case it does
             return self.rotate(rotation % 3)
+
 
 
 # Consists of all triangles possible in the game
