@@ -114,3 +114,6 @@ all_triangles += [Triangle((c0, c1, c2), 1) for c0, c1, c2 in one_point_colours]
 
 if __name__ == "__main__":
     print(len(all_triangles))
+
+    tri = all_triangles[30]
+    print(list([tri.rotate(i) for i in range(3)]))

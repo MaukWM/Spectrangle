@@ -102,7 +102,7 @@ class State(object):
         if tile.points_up:
             return self.get_tile(row, column - 1), self.get_tile(row + 1, column + 1), self.get_tile(row, column + 1)
         else:
-            return self.get_tile(row, column - 1), self.get_tile(row - 1, column - 1), self.get_tile(row, column + 1)
+            return self.get_tile(row - 1, column - 1), self.get_tile(row, column - 1), self.get_tile(row, column + 1)
 
     def get_neighbouring_tile_colours(self, row, column):
         """
@@ -161,7 +161,7 @@ class State(object):
     def matches_colour(self, tri, nb_colours):
         matching = 0
         for c, nb_c in zip(tri.colours, nb_colours):
-            if c == nb_c or c == triangle.Colour.WHITE or nb_c == triangle.Colour.WHITE:
+            if c == nb_c or c == triangle.Colour.WHITE and nb_c is not None or nb_c == triangle.Colour.WHITE:
                 matching += 1
         return matching > 0
 
@@ -181,7 +181,7 @@ class State(object):
                 if not self.initial or (self.initial and row, column not in bonus_set):
                     nb_colours = self.get_neighbouring_tile_colours(row, column)
                     for rotation in range(3):
-                        if self.matches_colour(tri.rotate(rotation), nb_colours):
+                        if self.initial or self.matches_colour(tri.rotate(rotation), nb_colours):
                             possible_place_actions.add(move.PlaceMove(row, column, hand_index, rotation))
         if possible_place_actions:
             return possible_place_actions
