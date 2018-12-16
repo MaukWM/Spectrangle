@@ -177,6 +177,10 @@ class State(object):
 
             reward = self.calculate_score(mv.row, mv.column)
             self.scores[player] += reward
+            if len(self.bag) != 0
+                self.hands[player].append(random.choice(self.bag))
+            else:
+                #TODO: Paniek
             return reward, False
         else:
             raise ValueError("Not a valid move!")
