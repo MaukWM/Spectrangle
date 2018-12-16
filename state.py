@@ -264,9 +264,7 @@ class State(object):
     def take_triangle(self):
         if len(self.bag) != 0:
             tri = random.choice(self.bag)
-            print(len(self.bag))
             self.bag.remove(tri)
-            print(len(self.bag))
             return tri
         else:
             return None

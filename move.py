@@ -17,3 +17,9 @@ class PlaceMove(Move):
         self.column = column
         self.hand_index = hand_index
         self.rotation = rotation
+
+    @staticmethod
+    def eq(self, other):
+        return self.row == other.row and self.column == other.column and self.hand_index == other.hand_index \
+               and self.rotation == other.rotation
+
