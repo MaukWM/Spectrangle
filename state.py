@@ -111,7 +111,6 @@ class State(object):
         :return: iets
         """
         neighbours = self.get_neighbouring_tiles(row, column)
-        print(neighbours)
 
         def get_color(nb, i):
             if nb is None or nb.contents is None:
@@ -202,6 +201,7 @@ class State(object):
             new_tri = random.choice(self.bag)
             self.hands[player].append(new_tri)
             self.bag.append(tri)
+            self.bag.remove(tri)
             return 0, False
         elif isinstance(mv, move.PlaceMove):
             # In place!
@@ -263,7 +263,9 @@ class State(object):
     def take_triangle(self):
         if len(self.bag) != 0:
             tri = random.choice(self.bag)
+            print(len(self.bag))
             self.bag.remove(tri)
+            print(len(self.bag))
             return tri
         else:
             return None
