@@ -198,7 +198,16 @@ class State(object):
     def step(self, mv: move.Move, player):
 
         if isinstance(mv, move.SkipMove):
-            return 0, False  # TODO: Check terminal and final score
+            term_counter = 1
+            for pl in range(self.players):
+                pl_moves = self.get_all_possible_moves(pl)
+                if isinstance(pl_moves, move.SkipMove):
+                    term_counter += 1
+            if term_counter == self.players:
+                deduction_points = sum([x for x in self.hands[player].score])
+                return -deduction_points, True
+            else:
+                return 0, False
         elif isinstance(mv, move.ExchangeMove):
             tri = self.hands[player].pop(mv.hand_index)
             new_tri = random.choice(self.bag)
@@ -222,7 +231,7 @@ class State(object):
             self.initial = False
             return reward, False
         else:
-            raise ValueError("Not a valid move!")
+            raise ValueError("Not a valid move! " + str(mv))
 
     def generate_step(self, mv, player):
         # Not in place
