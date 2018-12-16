@@ -197,14 +197,16 @@ class State(object):
     # @requires shit doesn't break
     def step(self, mv: move.Move, player):
 
+        print(mv)
+
         if isinstance(mv, move.SkipMove):
-            term_counter = 1
+            term_counter = 0
             for pl in range(self.players):
                 pl_moves = self.get_all_possible_moves(pl)
-                if isinstance(pl_moves, move.SkipMove):
+                if len(pl_moves) == 1 and isinstance(pl_moves.pop(), move.SkipMove):
                     term_counter += 1
             if term_counter == self.players:
-                deduction_points = sum([x for x in self.hands[player].score])
+                deduction_points = sum([x.score for x in self.hands[player]])
                 return -deduction_points, True
             else:
                 return 0, False
