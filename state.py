@@ -3,6 +3,17 @@ import random
 import move
 import triangle
 
+bonus_tiles = [(1, 1, 3),
+               (3, 1, 2),
+               (3, 2, 4),
+               (3, 4, 4),
+               (3, 5, 2),
+               (4, 4, 4),
+               (5, 1, 3),
+               (5, 5, 2),
+               (5, 9, 3)]
+
+bonus_set = {(r, c) for r, c, b in bonus_tiles}
 
 class Tile(object):
     def __init__(self, points_up: bool, bonus: int = 1):
@@ -50,6 +61,7 @@ class State(object):
         self.hands = [[], [], [], []]
         self.bag = triangle.all_triangles[:]
         self.scores = [0, 0, 0, 0]
+        self.initial = True
 
     def get_tile(self, row, column):
         if row > 5 or row < 0:
@@ -112,15 +124,6 @@ class State(object):
             return get_color(neighbours[0], 1), get_color(neighbours[1], 2), get_color(neighbours[2], 0)
 
     def generate_board(self):
-        bonus_tiles = [(1, 1, 3),
-                       (3, 1, 2),
-                       (3, 2, 4),
-                       (3, 4, 4),
-                       (3, 5, 2),
-                       (4, 4, 4),
-                       (5, 1, 3),
-                       (5, 5, 2),
-                       (5, 9, 3)]
         board = []
         for i in range(6):
             row = []
@@ -153,6 +156,13 @@ class State(object):
         score *= tile.bonus
         return score
 
+    def matches_colour(self, tri, nb_colours):
+        matching = 0
+        for c, nb_c in zip(tri.colours, nb_colours):
+            if c == nb_c or c == triangle.Colour.WHITE or nb_c == triangle.Colour.WHITE:
+                matching += 1
+        return matching > 0
+
     def get_all_empty_tiles(self):
         result = []
         for row in range(6):
@@ -161,10 +171,24 @@ class State(object):
                     result.append((row, column))
         return result
 
-
-
     def get_all_possible_moves(self, player: int):
-        pass
+        possible_place_actions = set()
+        empty_tiles = self.get_all_empty_tiles()
+        for hand_index, tri in enumerate(self.hands[player]):
+            for row, column in empty_tiles:
+                if not self.initial or (self.initial and row, column not in bonus_set):
+                    nb_colours = self.get_neighbouring_tile_colours(row, column)
+                    for rotation in range(3):
+                        if self.matches_colour(tri.rotate(rotation), nb_colours):
+                            possible_place_actions.add(move.PlaceMove(row, column, hand_index, rotation))
+        if possible_place_actions:
+            return possible_place_actions
+
+        possible_moves = {move.SkipMove()}
+        if len(self.bag) > 0:
+            for hand_index in range(len(self.hands[player])):
+                possible_moves.add(move.ExchangeMove(hand_index))
+        return possible_moves
 
     # @requires shit doesn't break
     def step(self, mv: move.Move, player):
@@ -187,10 +211,8 @@ class State(object):
 
             reward = self.calculate_score(mv.row, mv.column)
             self.scores[player] += reward
-            if len(self.bag) != 0
-                self.hands[player].append(random.choice(self.bag))
-            else:
-                #TODO: Paniek
+
+            self.initial = False
             return reward, False
         else:
             raise ValueError("Not a valid move!")
@@ -264,3 +286,4 @@ if __name__ == "__main__":
 
     print(state.calculate_score(1, 1))
     print(state)
+
