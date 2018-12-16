@@ -187,10 +187,7 @@ class State(object):
 
             reward = self.calculate_score(mv.row, mv.column)
             self.scores[player] += reward
-            if len(self.bag) != 0
-                self.hands[player].append(random.choice(self.bag))
-            else:
-                #TODO: Paniek
+            self.fill_hand()
             return reward, False
         else:
             raise ValueError("Not a valid move!")
@@ -235,13 +232,20 @@ class State(object):
         return result
 
     def take_triangle(self):
-        tri = random.choice(self.bag)
-        self.bag.remove(tri)
-        return tri
+        if len(self.bag) != 0:
+            tri = random.choice(self.bag)
+            self.bag.remove(tri)
+            return tri
+        else:
+            return None
 
     def fill_hand(self, player):
         while len(self.hands[player]) < 4:
-            self.hands[player].append(self.take_triangle())
+            new_triangle = self.take_triangle()
+            if new_triangle is not None
+                self.hands[player].append(new_triangle)
+            else:
+                break
 
 
 if __name__ == "__main__":
