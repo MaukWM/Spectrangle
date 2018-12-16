@@ -208,7 +208,15 @@ class State(object):
                 for j in range(len(self.hands[i])):
                     hand += str(self.hands[i][j]) + " "
                 hands += hand + "\n"
-        result += hands
+        result += hands + "\n"
+
+        # Score
+        scores = ""
+        for i in range(len(self.scores)):
+            if len(self.hands[i]) != 0:
+                score = "Score player " + str(i) + ": " + str(self.scores[i]) + "\n"
+                scores += score
+        result += scores + "\n"
 
         return result
 
