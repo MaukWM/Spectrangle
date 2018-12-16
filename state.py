@@ -32,7 +32,6 @@ class State(object):
             tile = None
         return tile
 
-
     def get_tile_colours(self, row, column):
         """
         Gets the colours of your tile. For pointing_up: [left, down, right], for down: [top, left, right]
@@ -40,6 +39,14 @@ class State(object):
         :param column:
         :return:
         """
+        tile = self.get_tile(row, column)
+        if tile is None:
+            return None
+        else:
+            if tile.contents is None:
+                return None
+            else:
+                return tile.contents.colours
         pass
 
     def get_neighbouring_tiles(self, row, column):
@@ -49,7 +56,11 @@ class State(object):
         :param column: oke
         :return: iets
         """
-        pass
+        tile = self.get_tile(row, column)
+        if tile.points_up:
+            return self.get_tile(row, column-1), self.get_tile(row+1, column+1), self.get_tile(row, column+1)
+        else:
+            return self.get_tile(row, column-1), self.get_tile(row-1, column-1), self.get_tile(row, column+1)
 
     def get_neighbouring_tile_colours(self, row, column):
         """
