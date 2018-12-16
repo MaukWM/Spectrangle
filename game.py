@@ -4,6 +4,7 @@ import agents.agent
 import state
 from agents.random_agent import RandomAgent
 from agents.human_agent import HumanAgent
+from agents.one_look_ahead_agent import OneLookAheadAgent
 
 def play_game(agents, visualise: bool):
     s = state.State(len(agents))
@@ -22,8 +23,8 @@ def play_game(agents, visualise: bool):
 if __name__=="__main__":
     play_game(
     agents=[
-        HumanAgent(0),
-        RandomAgent(1)
+        OneLookAheadAgent(0, 2),
+        RandomAgent(1, 2)
     ],
     visualise=True
     )
