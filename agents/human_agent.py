@@ -30,3 +30,6 @@ class HumanAgent(agent.Agent):
             else:
                 print("Invalid move! Try again...\n")
                 continue
+
+    def __str__(self):
+        return "HumanAgent " + str(self.index)

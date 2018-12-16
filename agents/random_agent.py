@@ -11,3 +11,6 @@ class RandomAgent(agent.Agent):
         possible_moves = list(possible_moves)
         mv = random.choice(possible_moves)
         return mv
+
+    def __str__(self):
+        return "RandomAgent " + str(self.index)

@@ -18,3 +18,6 @@ class OneLookAheadAgent(agent.Agent):
                 best_move = possible_move
 
         return best_move
+
+    def __str__(self):
+        return "OneLookAheadAgent " + str(self.index)

@@ -28,7 +28,7 @@ def play_game(agents, visualise: bool):
     print("Game Over!")
 
     for agent in agents:
-        print("Agent " + str(agent.index) + " ended with " + str(s.scores[agent.index]))
+        print(agent + " ended with " + str(s.scores[agent.index]))
 
 
 if __name__=="__main__":
