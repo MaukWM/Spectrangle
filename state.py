@@ -24,9 +24,20 @@ class State(object):
             pass
 
     def get_tile(self, row, column):
-        pass
+        try:
+            tile = self.board[row][column]
+        except IndexError:
+            tile = None
+        return tile
+
 
     def get_tile_colours(self, row, column):
+        """
+        Gets the colours of your tile. For pointing_up: [left, down, right], for down: [top, left, right]
+        :param row:
+        :param column:
+        :return:
+        """
         pass
 
     def get_neighbouring_tiles(self, row, column):
@@ -91,6 +102,7 @@ class State(object):
         pass
 
 
-state = State()
-print(state.board)
+if __name__=="__main__":
+    state = State()
+    print(state.board)
 
