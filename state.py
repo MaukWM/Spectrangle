@@ -54,7 +54,7 @@ class Tile(object):
 
 
 class State(object):
-    def __init__(self):
+    def __init__(self, players=4):
         # Build new board
         self.board = self.generate_board()
         # Init players and hands
@@ -62,6 +62,8 @@ class State(object):
         self.bag = triangle.all_triangles[:]
         self.scores = [0, 0, 0, 0]
         self.initial = True
+        for player in range(players):
+            self.fill_hand(player)
 
     def get_tile(self, row, column):
         if row > 5 or row < 0:
@@ -198,8 +200,8 @@ class State(object):
         elif isinstance(mv, move.ExchangeMove):
             tri = self.hands[player].pop(mv.hand_index)
             new_tri = random.choice(self.bag)
-            self.hands.append(new_tri)
-            self.bag += tri
+            self.hands[player].append(new_tri)
+            self.bag.append(tri)
             return 0, False
         elif isinstance(mv, move.PlaceMove):
             # In place!
@@ -207,7 +209,8 @@ class State(object):
                 raise Exception("Tried to place at a non-empty tile: (r: %d, c: %s)" % (mv.row, mv.column))
             tri = self.hands[player].pop(mv.hand_index)
             tri = tri.rotate(mv.rotation)
-            self.board[mv.row][mv.column] = tri
+            self.board[mv.row][mv.column].contents = tri
+            self.board[mv.row][mv.column].owner = player
 
             reward = self.calculate_score(mv.row, mv.column)
             self.scores[player] += reward
