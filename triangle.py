@@ -40,6 +40,15 @@ class Triangle(object):
             # This should not happen, but will work in case it does
             return self.rotate(rotation % 3)
 
+    def __repr__(self):
+        if self.contents.colours[0] == Colour.WHITE:
+            return "\033[1m/_\\\033[0m"
+        else:
+            c0, c1, c2 = self.contents.colours
+            background = "\033[38;5;%sm_" % colour_strings[c1]
+            char_0 = "\033[38;5;%sm/" % colour_strings[c0]
+            char_1 = "\033[38;5;%sm\\" % colour_strings[c2]
+            return char_0 + background + char_1 + "\033[39m"
 
 
 # Consists of all triangles possible in the game

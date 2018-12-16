@@ -144,6 +144,8 @@ class State(object):
         return new_state
 
     def __repr__(self):
+        result = ""
+        # Board
         rows = ""
         for i in range(len(self.board)):
             spaces_amount = len(self.board) - i
@@ -152,8 +154,18 @@ class State(object):
             for j in range(len(self.board[i])):
                 row += (str(self.board[i][j]))
             rows += row + "\n"
+        result += rows
 
-        return rows
+        # Hands
+        hands = ""
+        for i in range(len(self.hands)):
+            hand = "Hand player " + i + ": "
+            for j in range(len(self.hands[i])):
+                hand += self.hands[i][j]
+            hands += hand
+        result += hands
+
+        return result
 
 if __name__ == "__main__":
     state = State()
@@ -163,5 +175,8 @@ if __name__ == "__main__":
     state.board[1][2].contents = triangle.all_triangles[3]
     state.board[2][0].contents = triangle.all_triangles[4]
     state.board[2][1].contents = triangle.all_triangles[-1]
+
+
+
     print(state)
 
