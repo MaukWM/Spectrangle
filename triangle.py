@@ -11,12 +11,12 @@ class Colour(Enum):
 
 
 colour_strings = {
-    Colour.RED: "1",
-    Colour.BLUE: "4",
-    Colour.GREEN: "2",
-    Colour.YELLOW: "3",
-    Colour.PURPLE: "5",
-    Colour.WHITE: "9"
+    Colour.RED: "196",
+    Colour.BLUE: "32",
+    Colour.GREEN: "82",
+    Colour.YELLOW: "11",
+    Colour.PURPLE: "129",
+    Colour.WHITE: "256"
 }
 
 

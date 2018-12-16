@@ -10,18 +10,26 @@ class Tile(object):
 
     def __repr__(self):
         if self.contents is None:
-            return "EEE"
+            if self.points_up:
+                return "/_\\"
+            else:
+                return "\\¯/"
+        if self.contents.colours[0] == triangle.Colour.WHITE:
+            if self.points_up:
+                return "\033[1m/_\\\033[0m"
+            else:
+                return "\033[1m\\¯/\033[0m"
         c0, c1, c2 = self.contents.colours
 
         if self.points_up:
-            background = "\033[3%sm_" % triangle.colour_strings[c1]
-            char_0 = "\033[3%sm/" % triangle.colour_strings[c0]
-            char_1 = "\033[3%sm\\" % triangle.colour_strings[c2]
+            background = "\033[38;5;%sm_" % triangle.colour_strings[c1]
+            char_0 = "\033[38;5;%sm/" % triangle.colour_strings[c0]
+            char_1 = "\033[38;5;%sm\\" % triangle.colour_strings[c2]
             return char_0 + background + char_1 + "\033[39m"
         else:
-            background = "\033[3%sm¯" % triangle.colour_strings[c0]
-            char_0 = "\033[3%sm\\" % triangle.colour_strings[c1]
-            char_1 = "\033[3%sm/" % triangle.colour_strings[c2]
+            background = "\033[38;5;%sm¯" % triangle.colour_strings[c0]
+            char_0 = "\033[38;5;%sm\\" % triangle.colour_strings[c1]
+            char_1 = "\033[38;5;%sm/" % triangle.colour_strings[c2]
             return char_0 + background + char_1 + "\033[39m"
 
 
@@ -141,10 +149,13 @@ class State(object):
 
         return rows
 
-
-
 if __name__ == "__main__":
     state = State()
+    state.board[0][0].contents = triangle.all_triangles[0]
+    state.board[1][0].contents = triangle.all_triangles[1]
     state.board[1][1].contents = triangle.all_triangles[2]
+    state.board[1][2].contents = triangle.all_triangles[3]
+    state.board[2][0].contents = triangle.all_triangles[4]
+    state.board[2][1].contents = triangle.all_triangles[-1]
     print(state)
 
