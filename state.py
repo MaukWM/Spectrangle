@@ -55,6 +55,7 @@ class Tile(object):
 
 class State(object):
     def __init__(self, players=4):
+        self.players = players
         # Build new board
         self.board = self.generate_board()
         # Init players and hands
@@ -243,7 +244,7 @@ class State(object):
         # Hands
         hands = ""
         for i in range(len(self.hands)):
-            if len(self.hands[i]) != 0:
+            if i < self.players:
                 hand = "Hand player " + str(i) + ": "
                 for j in range(len(self.hands[i])):
                     hand += str(self.hands[i][j]) + " "
@@ -253,7 +254,7 @@ class State(object):
         # Score
         scores = ""
         for i in range(len(self.scores)):
-            if len(self.hands[i]) != 0:
+            if i < self.players:
                 score = "Score player " + str(i) + ": " + str(self.scores[i]) + "\n"
                 scores += score
         result += scores + "\n"
