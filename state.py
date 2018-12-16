@@ -1,5 +1,8 @@
 import copy
+import random
+
 import triangle
+
 
 class Tile(object):
     def __init__(self, points_up: bool, bonus: int = 1):
@@ -40,17 +43,13 @@ class Tile(object):
 
 
 class State(object):
-    def __init__(self, state=None):
-        if state is None:
-            # Build new board
-            self.board = self.generate_board()
-            # Init players and hands
-            self.hands = tuple()
-            self.in_bag = list()
-            pass
-        else:
-            # Deep copy old state
-            pass
+    def __init__(self):
+        # Build new board
+        self.board = self.generate_board()
+        # Init players and hands
+        self.hands = [[], [], [], []]
+        self.bag = triangle.all_triangles[:]
+        self.scores = [0, 0, 0, 0]
 
     def get_tile(self, row, column):
         try:
@@ -133,14 +132,20 @@ class State(object):
     def get_all_possible_moves(self, player: int):
         pass
 
-    def step(self, row, column, triangle):
+    def step(self, row, column, hand_index, rotation, player):
         # In place!
-        pass
+        if self.get_tile(row, column).contents is not None:
+            raise Exception("Tried to place at a non-empty tile: (r: %d, c: %s)" % (row, column))
+        # tri = self.hands[player].pop(hand_index)
+        # tri = tri.rotate(rotation)
 
-    def generate_step(self, row, column, hand_index):
+
+
+
+    def generate_step(self, row, column, hand_index, rotation, player):
         # Not in place
         new_state = copy.deepcopy(self)
-        new_state.step(row, column, hand_index)
+        new_state.step(row, column, hand_index, rotation, player)
         return new_state
 
     def __repr__(self):
@@ -166,6 +171,16 @@ class State(object):
         result += hands
 
         return result
+
+    def take_triangle(self):
+        tri = random.choice(self.bag)
+        self.bag.remove(tri)
+        return tri
+
+    def fill_hand(self, player):
+        while len(self.hands[player]) < 4:
+            self.hands[player].append(self.take_triangle())
+
 
 if __name__ == "__main__":
     state = State()
