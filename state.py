@@ -1,3 +1,5 @@
+import copy
+
 
 class Tile(object):
     def __init__(self, points_up: bool, bonus: int = 1):
@@ -86,23 +88,25 @@ class State(object):
             board.append(row)
         return board
 
-
     def calculate_score(self):
         # For all players
         pass
 
-    def get_all_possible_moves(self, player:int):
+    def get_all_possible_moves(self, player: int):
         pass
 
     def step(self, row, column, triangle):
         # In place!
         pass
 
-    def deepcopy(self):
-        pass
+    def generate_step(self, row, column, hand_index):
+        # Not in place
+        new_state = copy.deepcopy(self)
+        new_state.step(row, column, hand_index)
+        return new_state
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     state = State()
     print(state.board)
 
