@@ -10,19 +10,19 @@ class Tile(object):
 
     def __repr__(self):
         if self.contents is None:
-            return "  "
+            return "EEE"
         c0, c1, c2 = self.contents.colours
 
         if self.points_up:
-            background = "\033[4%sm" % triangle.colour_strings[c1]
+            background = "\033[3%sm_" % triangle.colour_strings[c1]
             char_0 = "\033[3%sm/" % triangle.colour_strings[c0]
             char_1 = "\033[3%sm\\" % triangle.colour_strings[c2]
-            return background + char_0 + background + char_1 + "\033[39m"
+            return char_0 + background + char_1 + "\033[39m"
         else:
-            background = "\033[4%sm" % triangle.colour_strings[c0]
+            background = "\033[3%sm¯" % triangle.colour_strings[c0]
             char_0 = "\033[3%sm\\" % triangle.colour_strings[c1]
             char_1 = "\033[3%sm/" % triangle.colour_strings[c2]
-            return background + char_0 + char_1 + "\033[39m\033[49m"
+            return char_0 + background + char_1 + "\033[39m"
 
 
 class State(object):
@@ -132,6 +132,6 @@ class State(object):
 
 if __name__ == "__main__":
     state = State()
-    state.board[0][0].contents = triangle.all_triangles[2]
+    state.board[1][1].contents = triangle.all_triangles[2]
     print(state.board)
 
