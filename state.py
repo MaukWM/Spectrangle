@@ -181,10 +181,10 @@ class State(object):
         else:
             raise ValueError("Not a valid move!")
 
-    def generate_step(self, move, player):
+    def generate_step(self, mv, player):
         # Not in place
         new_state = copy.deepcopy(self)
-        new_state.step(move, player)
+        new_state.step(mv, player)
         return new_state
 
     def __repr__(self):
