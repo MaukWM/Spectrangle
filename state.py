@@ -52,10 +52,12 @@ class State(object):
         self.scores = [0, 0, 0, 0]
 
     def get_tile(self, row, column):
-        try:
-            tile = self.board[row][column]
-        except IndexError:
-            tile = None
+        if row > 5 or row < 0:
+            return None
+        elif column < 0 or column >= len(self.board[row]):
+            return None
+        tile = self.board[row][column]
+
         return tile
 
     def get_tile_colours(self, row, column):
@@ -73,7 +75,6 @@ class State(object):
                 return None
             else:
                 return tile.contents.colours
-        pass
 
     def get_neighbouring_tiles(self, row, column):
         """
@@ -95,7 +96,20 @@ class State(object):
         :param column: oke
         :return: iets
         """
-        pass
+        neighbours = self.get_neighbouring_tiles(row, column)
+        print(neighbours)
+
+        def get_color(nb, i):
+            if nb is None or nb.contents is None:
+                return None
+            else:
+                return nb.contents.colours[i]
+
+        own_tile = self.get_tile(row, column)
+        if own_tile.points_up:
+            return get_color(neighbours[0], 2), get_color(neighbours[1], 0), get_color(neighbours[2], 1)
+        else:
+            return get_color(neighbours[0], 1), get_color(neighbours[1], 2), get_color(neighbours[2], 0)
 
     def generate_board(self):
         bonus_tiles = [(1, 1, 3),
@@ -125,9 +139,19 @@ class State(object):
             board.append(row)
         return board
 
-    def calculate_score(self):
-        # For all players
-        pass
+    def calculate_score(self, row, column):
+        colours = self.get_tile_colours(row, column)
+        nb_colours = self.get_neighbouring_tile_colours(row, column)
+
+        matching = 0
+        for c, nb_c in zip(colours, nb_colours):
+            if c == nb_c or c == triangle.Colour.WHITE or nb_c == triangle.Colour.WHITE:
+                matching += 1
+        tile = self.get_tile(row, column)
+        score = tile.contents.score
+        score *= matching
+        score *= tile.bonus
+        return score
 
     def get_all_possible_moves(self, player: int):
         pass
@@ -136,10 +160,12 @@ class State(object):
         # In place!
         if self.get_tile(row, column).contents is not None:
             raise Exception("Tried to place at a non-empty tile: (r: %d, c: %s)" % (row, column))
-        # tri = self.hands[player].pop(hand_index)
-        # tri = tri.rotate(rotation)
+        tri = self.hands[player].pop(hand_index)
+        tri = tri.rotate(rotation)
+        self.board[row][column] = tri
 
-
+        score = tri.score
+        neighbours = self.get_neighbouring_tile_colours(row, column)
 
 
     def generate_step(self, row, column, hand_index, rotation, player):
@@ -173,10 +199,16 @@ class State(object):
 if __name__ == "__main__":
     state = State()
     state.board[0][0].contents = triangle.all_triangles[0]
-    state.board[1][0].contents = triangle.all_triangles[1]
-    state.board[1][1].contents = triangle.all_triangles[2]
+    state.board[1][0].contents = triangle.all_triangles[0]
+    state.board[1][1].contents = triangle.all_triangles[0]
     state.board[1][2].contents = triangle.all_triangles[3]
     state.board[2][0].contents = triangle.all_triangles[4]
-    state.board[2][1].contents = triangle.all_triangles[-1]
+    state.board[2][1].contents = triangle.all_triangles[2]
+
+    print(state.get_neighbouring_tile_colours(1,1))
+    print(state.get_neighbouring_tile_colours(2,4))
+    print(state.get_neighbouring_tile_colours(0,0))
+
+    print(state.calculate_score(1,1))
     print(state)
 
