@@ -129,9 +129,22 @@ class State(object):
         new_state.step(row, column, hand_index)
         return new_state
 
+    def __repr__(self):
+        rows = ""
+        for i in range(len(self.board)):
+            spaces_amount = len(self.board) - i
+            spaces = "".join([" " for j in range(spaces_amount*3)])
+            row = spaces
+            for j in range(len(self.board[i])):
+                row += (str(self.board[i][j]))
+            rows += row + "\n"
+
+        return rows
+
+
 
 if __name__ == "__main__":
     state = State()
     state.board[1][1].contents = triangle.all_triangles[2]
-    print(state.board)
+    print(state)
 
