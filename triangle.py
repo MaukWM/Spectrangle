@@ -19,7 +19,6 @@ colour_strings = {
     Colour.WHITE: "256"
 }
 
-
 class Triangle(object):
     def __init__(self, colours: tuple, score: int):
         self.colours = colours

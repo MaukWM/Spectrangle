@@ -25,19 +25,22 @@ def play_game(agents, visualise: bool):
             if stop_point == -1:
                 stop_point = agent
         agent = (agent + 1) % len(agents)
-
-    print("Game Over!\n")
+    if visualise:
+        print("Game Over!\n")
 
     best_score = -math.inf
     best_agent = None
 
     for agent in agents:
-        print(str(agent) + " ended with " + str(s.scores[agent.index]))
+        if visualise:
+            print(str(agent) + " ended with " + str(s.scores[agent.index]))
         if s.scores[agent.index] > best_score:
             best_score = s.scores[agent.index]
             best_agent = agent
 
-    print(str(best_agent) + " wins!")
+    if visualise:
+        print(str(best_agent) + " wins!")
+    return s.scores
 
 
 if __name__=="__main__":
