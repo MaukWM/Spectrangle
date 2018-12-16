@@ -4,5 +4,5 @@ import keras as ks
 def transform_state(s):
 
 
-    def __str__(self):
+    def __repr__(self):
         return "QAgent " + str(self.index)

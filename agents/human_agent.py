@@ -31,5 +31,5 @@ class HumanAgent(agent.Agent):
                 print("Invalid move! Try again...\n")
                 continue
 
-    def __str__(self):
+    def __repr__(self):
         return "HumanAgent " + str(self.index)

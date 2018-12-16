@@ -1,4 +1,4 @@
-import random
+import math
 
 import move
 import state
@@ -9,7 +9,7 @@ class OneLookAheadAgent(agent.Agent):
     def get_move(self, s: state.State) -> move.Move:
         possible_moves = s.get_all_possible_moves(self.index)
         possible_moves = list(possible_moves)
-        highest_score_gain = -1
+        highest_score_gain = -math.inf
         best_move = None
         for possible_move in possible_moves:
             new_state, r, terminal = s.generate_step(possible_move, self.index)
@@ -19,5 +19,5 @@ class OneLookAheadAgent(agent.Agent):
 
         return best_move
 
-    def __str__(self):
+    def __repr__(self):
         return "OneLookAheadAgent " + str(self.index)

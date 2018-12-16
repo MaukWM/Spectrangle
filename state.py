@@ -196,9 +196,6 @@ class State(object):
 
     # @requires shit doesn't break
     def step(self, mv: move.Move, player):
-
-        print(mv)
-
         if isinstance(mv, move.SkipMove):
             term_counter = 0
             for pl in range(self.players):
@@ -270,7 +267,7 @@ class State(object):
             if i < self.players:
                 score = "Score player " + str(i) + ": " + str(self.scores[i]) + "\n"
                 scores += score
-        result += scores + "\n"
+        result += scores
 
         return result
 
