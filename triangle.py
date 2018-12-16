@@ -45,10 +45,10 @@ class Triangle(object):
 # Consists of all triangles possible in the game
 all_triangles = []
 
-normal_colours = {Colour.RED, Colour.BLUE, Colour.GREEN, Colour.YELLOW, Colour.PURPLE}
+normal_colours = [Colour.RED, Colour.BLUE, Colour.GREEN, Colour.YELLOW, Colour.PURPLE]
 all_triangles += [Triangle((c, c, c), 6) for c in normal_colours]
 
-five_point_colours = {
+five_point_colours = [
     (Colour.RED, Colour.YELLOW),
     (Colour.RED, Colour.PURPLE),
     (Colour.BLUE, Colour.RED),
@@ -59,10 +59,10 @@ five_point_colours = {
     (Colour.YELLOW, Colour.BLUE),
     (Colour.PURPLE, Colour.YELLOW),
     (Colour.PURPLE, Colour.GREEN),
-}
+]
 all_triangles += [Triangle((c0, c0, c1), 5) for c0, c1 in five_point_colours]
 
-four_point_colours = {
+four_point_colours = [
     (Colour.RED, Colour.BLUE),
     (Colour.RED, Colour.GREEN),
     (Colour.BLUE, Colour.GREEN),
@@ -73,32 +73,32 @@ four_point_colours = {
     (Colour.YELLOW, Colour.PURPLE),
     (Colour.PURPLE, Colour.RED),
     (Colour.PURPLE, Colour.BLUE),
-}
+]
 all_triangles += [Triangle((c0, c0, c1), 4) for c0, c1 in four_point_colours]
 
-three_point_colours = {
+three_point_colours = [
     (Colour.YELLOW, Colour.BLUE, Colour.PURPLE),
     (Colour.RED, Colour.GREEN, Colour.YELLOW),
     (Colour.BLUE, Colour.GREEN, Colour.PURPLE),
     (Colour.GREEN, Colour.RED, Colour.BLUE),
-}
+]
 
 all_triangles += [Triangle((c0, c1, c2), 3) for c0, c1, c2 in three_point_colours]
 
-two_point_colours = {
+two_point_colours = [
     (Colour.BLUE, Colour.RED, Colour.PURPLE),
     (Colour.YELLOW, Colour.PURPLE, Colour.RED),
     (Colour.YELLOW, Colour.PURPLE, Colour.GREEN),
-}
+]
 
 all_triangles += [Triangle((c0, c1, c2), 2) for c0, c1, c2 in two_point_colours]
 
-one_point_colours = {
+one_point_colours = [
     (Colour.GREEN, Colour.RED, Colour.PURPLE),
     (Colour.BLUE, Colour.YELLOW, Colour.GREEN),
     (Colour.RED, Colour.YELLOW, Colour.BLUE),
     (Colour.WHITE, Colour.WHITE, Colour.WHITE),
-}
+]
 
 all_triangles += [Triangle((c0, c1, c2), 1) for c0, c1, c2 in one_point_colours]
 
