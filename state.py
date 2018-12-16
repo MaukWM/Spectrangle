@@ -227,8 +227,8 @@ class State(object):
     def generate_step(self, mv, player):
         # Not in place
         new_state = copy.deepcopy(self)
-        new_state.step(mv, player)
-        return new_state
+        r, done = new_state.step(mv, player)
+        return new_state, r, done
 
     def __repr__(self):
         result = ""
