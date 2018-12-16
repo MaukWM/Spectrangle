@@ -133,10 +133,10 @@ class QAgent(agent.Agent):
                 o_p3 = transform_state(s_prime, 3)
 
                 self.replay += [
-                    (o0, 0, o_p0, False),
-                    (o1, 0, o_p1, False),
-                    (o2, 0, o_p2, False),
-                    (o3, r*self.reward_scale, o_p3, done)
+                    (o0, r*self.reward_scale, o_p3, done),
+                    (o1, -r*self.reward_scale/3, o_p0, False),
+                    (o2, -r*self.reward_scale/3, o_p1, False),
+                    (o3, -r*self.reward_scale/3, o_p2, False)
                 ]
 
                 x, y = self.sample_batch()
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     from agents.random_agent import RandomAgent
     from agents.one_look_ahead_agent import OneLookAheadAgent
 
-    LOAD_MODEL = False
+    LOAD_MODEL = True
 
     if LOAD_MODEL:
         model = ks.models.load_model("temp.h5")
@@ -174,34 +174,41 @@ if __name__ == "__main__":
 
         board = ks.layers.Conv1D(64, 1, activation='selu')(board)
         triangles = ks.layers.Conv1D(64, 3, strides=3, activation='selu')(board)
-        triangles = ks.layers.Conv1D(32, 3, strides=3, activation='selu')(triangles)
+        triangles = ks.layers.Conv1D(4, 3, strides=3, activation='selu')(triangles)
         board = ks.layers.Flatten()(triangles)
         x = ks.layers.Concatenate(axis=1)([info, board])
-        x = ks.layers.Dense(64, activation='selu')(x)
         x = ks.layers.Dense(32, activation='selu')(x)
         out = ks.layers.Dense(1, activation='linear')(x)
 
         model = ks.Model(inputs=inp, outputs=out)
-        model.compile(optimizer=ks.optimizers.Adam(0.0003), loss='mse')
+        model.compile(optimizer=ks.optimizers.Adam(0.001), loss='mse')
     model.summary()
 
-    q_ag = QAgent(2, 4, model)
+    q_ag = QAgent(1, 2, model)
 
-    q_ag.train(50, 1.0, 0.9)
+    #q_ag.train(30, 1.0, 0.9)
 
     agents = [
-        OneLookAheadAgent(0, 4),
-        OneLookAheadAgent(1, 4),
+        OneLookAheadAgent(0, 2),
         q_ag,
-        OneLookAheadAgent(3, 4),
     ]
+
 
     model.save("temp.h5")
 
     scores = []
     wins = defaultdict(lambda: 0)
+    switched = False
     for i in range(100):
         score = game.play_game(agents, False)
+        if switched:
+            score[0], score[1] = score[1], score[0]
+
+        agents = agents[::-1]
+        switched = not switched
+        for j, agent in enumerate(agents):
+            agent.index = j
+
         scores.append(score)
         winner = np.argmax(score)
         wins[winner] += 1
