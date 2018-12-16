@@ -153,6 +153,16 @@ class State(object):
         score *= tile.bonus
         return score
 
+    def get_all_empty_tiles(self):
+        result = []
+        for row in range(6):
+            for column in range(len(self.board[row])):
+                if self.board[row][column].contents is None:
+                    result.append((row, column))
+        return result
+
+
+
     def get_all_possible_moves(self, player: int):
         pass
 
