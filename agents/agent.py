@@ -5,8 +5,9 @@ import state
 
 
 class Agent(ABC):
-    def __init__(self, index):
+    def __init__(self, index, n_players):
         self.index = index
+        self.n_players = n_players
 
     def on_game_start(self, s: state.State):
         pass
