@@ -10,10 +10,16 @@ class Tile(object):
 
     def __repr__(self):
         if self.contents is None:
-            if self.points_up:
-                return "/_\\"
+            if self.bonus != 1:
+                if self.points_up:
+                    return "/" + str(self.bonus) + "\\"
+                else:
+                    return "\\" + str(self.bonus) + "/"
             else:
-                return "\\¯/"
+                if self.points_up:
+                    return "/_\\"
+                else:
+                    return "\\¯/"
         if self.contents.colours[0] == triangle.Colour.WHITE:
             if self.points_up:
                 return "\033[1m/_\\\033[0m"
