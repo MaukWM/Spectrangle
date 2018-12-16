@@ -1,6 +1,6 @@
 import copy
 import random
-
+import move
 import triangle
 
 
@@ -85,9 +85,9 @@ class State(object):
         """
         tile = self.get_tile(row, column)
         if tile.points_up:
-            return self.get_tile(row, column-1), self.get_tile(row+1, column+1), self.get_tile(row, column+1)
+            return self.get_tile(row, column - 1), self.get_tile(row + 1, column + 1), self.get_tile(row, column + 1)
         else:
-            return self.get_tile(row, column-1), self.get_tile(row-1, column-1), self.get_tile(row, column+1)
+            return self.get_tile(row, column - 1), self.get_tile(row - 1, column - 1), self.get_tile(row, column + 1)
 
     def get_neighbouring_tile_colours(self, row, column):
         """
@@ -124,7 +124,7 @@ class State(object):
         board = []
         for i in range(6):
             row = []
-            row_length = 1 + i*2
+            row_length = 1 + i * 2
             for j in range(row_length):
                 # Get potential bonus
                 (x, y) = (i, j)
@@ -132,7 +132,7 @@ class State(object):
                 for k in range(len(bonus_tiles)):
                     if bonus_tiles[k][0] == x and bonus_tiles[k][1] == y:
                         bonus = bonus_tiles[k][2]
-                if j%2 == 0:
+                if j % 2 == 0:
                     row.append(Tile(points_up=True, bonus=bonus))
                 else:
                     row.append(Tile(points_up=False, bonus=bonus))
@@ -156,22 +156,35 @@ class State(object):
     def get_all_possible_moves(self, player: int):
         pass
 
-    def step(self, row, column, hand_index, rotation, player):
-        # In place!
-        if self.get_tile(row, column).contents is not None:
-            raise Exception("Tried to place at a non-empty tile: (r: %d, c: %s)" % (row, column))
-        tri = self.hands[player].pop(hand_index)
-        tri = tri.rotate(rotation)
-        self.board[row][column] = tri
+    # @requires shit doesn't break
+    def step(self, mv: move.Move, player):
 
-        score = tri.score
-        neighbours = self.get_neighbouring_tile_colours(row, column)
+        if isinstance(mv, move.SkipMove):
+            return 0, False  # TODO: Check terminal and final score
+        elif isinstance(mv, move.ExchangeMove):
+            tri = self.hands[player].pop(mv.hand_index)
+            new_tri = random.choice(self.bag)
+            self.hands.append(new_tri)
+            self.bag += tri
+            return 0, False
+        elif isinstance(mv, move.PlaceMove):
+            # In place!
+            if self.get_tile(mv.row, mv.column).contents is not None:
+                raise Exception("Tried to place at a non-empty tile: (r: %d, c: %s)" % (mv.row, mv.column))
+            tri = self.hands[player].pop(mv.hand_index)
+            tri = tri.rotate(mv.rotation)
+            self.board[mv.row][mv.column] = tri
 
+            reward = self.calculate_score(mv.row, mv.column)
+            self.scores[player] += reward
+            return reward, False
+        else:
+            raise ValueError("Not a valid move!")
 
-    def generate_step(self, row, column, hand_index, rotation, player):
+    def generate_step(self, move, player):
         # Not in place
         new_state = copy.deepcopy(self)
-        new_state.step(row, column, hand_index, rotation, player)
+        new_state.step(move, player)
         return new_state
 
     def __repr__(self):
@@ -180,7 +193,7 @@ class State(object):
         rows = ""
         for i in range(len(self.board)):
             spaces_amount = len(self.board) - i
-            spaces = "".join([" " for j in range(spaces_amount*3)])
+            spaces = "".join([" " for j in range(spaces_amount * 3)])
             row = spaces
             for j in range(len(self.board[i])):
                 row += (str(self.board[i][j]))
@@ -223,10 +236,9 @@ if __name__ == "__main__":
 
     state.board[2][1].contents = triangle.all_triangles[2]
 
-    print(state.get_neighbouring_tile_colours(1,1))
-    print(state.get_neighbouring_tile_colours(2,4))
-    print(state.get_neighbouring_tile_colours(0,0))
+    print(state.get_neighbouring_tile_colours(1, 1))
+    print(state.get_neighbouring_tile_colours(2, 4))
+    print(state.get_neighbouring_tile_colours(0, 0))
 
-    print(state.calculate_score(1,1))
+    print(state.calculate_score(1, 1))
     print(state)
-
