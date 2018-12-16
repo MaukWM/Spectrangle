@@ -153,6 +153,8 @@ class State(object):
             if c == nb_c or c == triangle.Colour.WHITE or nb_c == triangle.Colour.WHITE:
                 matching += 1
         tile = self.get_tile(row, column)
+        if self.initial:
+            matching = 1
         score = tile.contents.score
         score *= matching
         score *= tile.bonus
