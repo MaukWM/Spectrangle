@@ -26,7 +26,7 @@ def c_to_oh(c):
     return out
 
 
-def transform_state(s: state.State, turns_till_turn):
+def transform_state(s: state.State, turns_till_turn, player_index, zero_new_item=False):
     # Triangles:
 
     triangle_states = []
@@ -40,8 +40,18 @@ def transform_state(s: state.State, turns_till_turn):
                 oh_array = c_to_oh(c) + c_to_oh(nb_c)
                 triangle_states.append(oh_array)
 
+    hand_state = []
+    for i in range(4):
+        if len(s.hands[player_index]) <= i:
+            hand_state += [c_to_oh(None) + [0]*8]*3
+        elif i == 3 and zero_new_item:
+            hand_state += [[0]*16]*3
+        else:
+            for colour in s.hands[player_index][i].colours:
+                hand_state.append(c_to_oh(colour) + [0]*8)
+
     info = [to_oh(turns_till_turn, 4) + [0]*(8+4)]
-    return np.array(info + triangle_states)
+    return np.array(info + hand_state + triangle_states)
 
 
 class QAgent(agent.Agent):
@@ -50,7 +60,7 @@ class QAgent(agent.Agent):
         self.model = model
         self.gamma = gamma
         self.replay = []
-        self.replay_size = 1000
+        self.replay_size = 10000
         self.reward_scale = reward_scale
 
         # Make fixed model
@@ -70,7 +80,7 @@ class QAgent(agent.Agent):
         new_steps = [s.generate_step(mv, player) for mv in possible_moves]
         states, rewards, dones = zip(*new_steps)
         all_new_states = np.stack([
-            transform_state(ss, self.n_players - 1) for ss in states]
+            transform_state(ss, self.n_players - 1, player, zero_new_item=True) for ss in states]
             , axis=0
         )
         values = self.model.predict(all_new_states)[:, 0]
@@ -103,71 +113,75 @@ class QAgent(agent.Agent):
             targets[i, 0] = vps[i]
         return states, targets
 
-    def train(self, epochs, epsilon, epsilon_decay_per_episode, test_against=[], test_every_n_epsiodes=10, number_of_test_games=10):
+    def train(self, epochs, epsilon, epsilon_decay_per_episode, epsilon_min, test_against=[], test_every_n_epsiodes=10, number_of_test_games=10):
         win_rates = []
         epsiodes = []
-        for episode in range(epochs):
+        try:
+            for episode in range(epochs):
 
-            if episode%test_every_n_epsiodes == 1:
-                print("Running tests: ")
-                agents = [self] + test_against
-                wins = 0
-                for i in range(number_of_test_games):
-                    score = game.play_game(agents, False, True)
-                    winner = max(score.keys(), key=lambda key: score[key])
-                    if winner == self:
-                        wins += 1
-                win_rate = wins/number_of_test_games
-                epsiodes.append(episode)
-                win_rates.append(win_rate)
-                print("Episode: ", episode, " winrate: ", win_rate)
+                if episode%test_every_n_epsiodes == 1:
+                    print("Running tests: ")
+                    agents = [self] + test_against
+                    wins = 0
+                    for i in range(number_of_test_games):
+                        for j in range(len(agents)):
+                            score = game.play_game(agents, False, False, starting_agent_index=j)
+                            winner = max(score.keys(), key=lambda key: score[key])
+                            if winner == self:
+                                wins += 1
+                    win_rate = wins/(number_of_test_games * len(agents))
+                    epsiodes.append(episode)
+                    win_rates.append(win_rate)
+                    print("Episode: ", episode, " winrate: ", win_rate)
 
-            done_counter = 4
-            player = 0
-            s = state.State()
-            o0 = transform_state(s, 0)
-            o1 = transform_state(s, 1)
-            o2 = transform_state(s, 2)
-            o3 = transform_state(s, 3)
+                done_counter = 4
+                player = 0
+                s = state.State()
+                o0 = transform_state(s, 0, self.index)
+                o1 = transform_state(s, 1, self.index)
+                o2 = transform_state(s, 2, self.index)
+                o3 = transform_state(s, 3, self.index)
 
-            print("Training episode ", episode, "epsilon: ", epsilon*(epsilon_decay_per_episode**episode))
+                print("Training episode ", episode, "epsilon: ", max(epsilon*(epsilon_decay_per_episode**episode), epsilon_min))
 
-            while done_counter > 0:
-                if random.random() > epsilon*(epsilon_decay_per_episode**episode):
-                    moves, values = self.get_moves_with_values(s, player)
-                    i = int(np.argmax(values))
-                    mv = moves[i]
-                else:
-                    mv = random.choice(list(s.get_all_possible_moves(player)))
+                while done_counter > 0:
+                    if random.random() > max(epsilon*(epsilon_decay_per_episode**episode), epsilon_min):
+                        moves, values = self.get_moves_with_values(s, player)
+                        i = int(np.argmax(values))
+                        mv = moves[i]
+                    else:
+                        mv = random.choice(list(s.get_all_possible_moves(player)))
 
-                s_prime, r, done = s.generate_step(mv, player)
-                if done:
-                    done_counter -= 1
+                    s_prime, r, done = s.generate_step(mv, player)
+                    if done:
+                        done_counter -= 1
 
-                o_p0 = transform_state(s_prime, 0)
-                o_p1 = transform_state(s_prime, 1)
-                o_p2 = transform_state(s_prime, 2)
-                o_p3 = transform_state(s_prime, 3)
+                    o_p0 = transform_state(s_prime, 0, self.index)
+                    o_p1 = transform_state(s_prime, 1, self.index)
+                    o_p2 = transform_state(s_prime, 2, self.index)
+                    o_p3 = transform_state(s_prime, 3, self.index)
 
-                self.replay += [
-                    (o0, r*self.reward_scale, o_p3, done),
-                    (o1, -r*self.reward_scale, o_p0, False),
-                    (o2, -r*self.reward_scale, o_p1, False),
-                    (o3, -r*self.reward_scale, o_p2, False)
-                ]
+                    self.replay += [
+                        (o0, r*self.reward_scale, o_p3, done),
+                        (o1, -r*self.reward_scale, o_p0, False),
+                        (o2, -r*self.reward_scale, o_p1, False),
+                        (o3, -r*self.reward_scale, o_p2, False)
+                    ]
 
-                x, y = self.sample_batch()
-                self.model.fit(x, y, verbose=False)
-                player = (player + 1) % 4
-                s = s_prime
-                o0 = o_p0
-                o1 = o_p1
-                o2 = o_p2
-                o3 = o_p3
+                    x, y = self.sample_batch()
+                    self.model.fit(x, y, verbose=False)
+                    player = (player + 1) % 4
+                    s = s_prime
+                    o0 = o_p0
+                    o1 = o_p1
+                    o2 = o_p2
+                    o3 = o_p3
 
-
-            # Update fixed weights
-            self.fixed_model.set_weights(self.model.get_weights())
+                # Update fixed weights
+                self.fixed_model.set_weights(self.model.get_weights())
+        except KeyboardInterrupt:
+            pass
+        return epsiodes, win_rates
 
     def __repr__(self):
         return "QAgent " + str(self.index)
@@ -179,26 +193,40 @@ if __name__ == "__main__":
     from agents.human_agent import HumanAgent
     from agents.random_agent import RandomAgent
     from agents.one_look_ahead_agent import OneLookAheadAgent
+    import matplotlib.pyplot as plt
 
     LOAD_MODEL = False
     if LOAD_MODEL:
         model = ks.models.load_model("temp.h5")
     else:
-        inp = ks.Input((3*36+1, 16))
+        inp = ks.Input((1 + 3*4 + 3*36, 16))
         info = ks.layers.Lambda(lambda x: x[:, 0])(inp)
-        board = ks.layers.Lambda(lambda x: x[:, 1:])(inp)
+        hand = ks.layers.Lambda(lambda x: x[:, 1:3*4+1])(inp)
+        board = ks.layers.Lambda(lambda x: x[:, 3*4+1:])(inp)
 
-        board = ks.layers.Conv1D(64, 1, activation='selu')(board)
-        triangles = ks.layers.Conv1D(64, 3, strides=3, activation='selu')(board)
-        triangles = ks.layers.Conv1D(32, 3, strides=3, activation='selu')(triangles)
+        triangle_conv1 = ks.layers.Conv1D(64, 1, activation='selu')
+        triangle_conv2 = ks.layers.Conv1D(64, 3, strides=3, activation='selu')
+        triangle_conv3 = ks.layers.Conv1D(32, 1, strides=1, activation='selu')
+
+        board = triangle_conv1(board)
+        triangles = triangle_conv2(board)
+        triangles = triangle_conv3(triangles)
         board = ks.layers.Flatten()(triangles)
-        x = ks.layers.Concatenate(axis=1)([info, board])
+        board = ks.layers.Dense(64, activation='selu')(board)
+
+        hand = triangle_conv1(hand)
+        hand = triangle_conv2(hand)
+        hand = triangle_conv3(hand)
+        hand = ks.layers.Flatten()(hand)
+        hand = ks.layers.Dense(24, activation='selu')(hand)
+
+        x = ks.layers.Concatenate(axis=1)([info, hand, board])
         x = ks.layers.Dense(64, activation='selu')(x)
         x = ks.layers.Dense(32, activation='selu')(x)
         out = ks.layers.Dense(1, activation='linear')(x)
 
         model = ks.Model(inputs=inp, outputs=out)
-        model.compile(optimizer=ks.optimizers.Adam(0.0005), loss='mse')
+        model.compile(optimizer=ks.optimizers.Adam(0.0001), loss='mse')
     model.summary()
 
     q_ag = QAgent(0, 4, model, gamma=0.99)
@@ -210,12 +238,13 @@ if __name__ == "__main__":
         OneLookAheadAgent(3, 4),
     ]
 
-    try:
-        q_ag.train(1000, 1.0, 0.995, test_every_n_epsiodes=50, number_of_test_games=20, test_against=agents[1:])
-    except KeyboardInterrupt:
-        pass
+    episodes, winrates = \
+        q_ag.train(200, 1.0, 0.97, epsilon_min=0.01, test_every_n_epsiodes=50, number_of_test_games=10, test_against=agents[1:])
 
-
+    plt.plot(episodes, winrates)
+    plt.xlabel("Episodes")
+    plt.ylabel("Win rate")
+    plt.show()
 
     game.play_game(agents, True)
 

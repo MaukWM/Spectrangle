@@ -8,7 +8,7 @@ from agents.human_agent import HumanAgent
 from agents.one_look_ahead_agent import OneLookAheadAgent
 
 
-def play_game(agents, visualise: bool, shuffle_agents=False):
+def play_game(agents, visualise: bool, shuffle_agents=False, starting_agent_index=0):
     agents = agents[:]
 
     if shuffle_agents:
@@ -20,7 +20,7 @@ def play_game(agents, visualise: bool, shuffle_agents=False):
 
     stop_point = -1
     s = state.State(len(agents))
-    agent = 0
+    agent = starting_agent_index
     if visualise:
         print(s)
     for i in range(len(agents)):
