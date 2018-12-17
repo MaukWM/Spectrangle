@@ -103,8 +103,25 @@ class QAgent(agent.Agent):
             targets[i, 0] = vps[i]
         return states, targets
 
-    def train(self, epochs, epsilon, epsilon_decay_per_episode):
+    def train(self, epochs, epsilon, epsilon_decay_per_episode, test_against=[], test_every_n_epsiodes=10, number_of_test_games=10):
+        win_rates = []
+        epsiodes = []
         for episode in range(epochs):
+
+            if episode%test_every_n_epsiodes == 1:
+                print("Running tests: ")
+                agents = [self] + test_against
+                wins = 0
+                for i in range(number_of_test_games):
+                    score = game.play_game(agents, False, True)
+                    winner = max(score.keys(), key=lambda key: score[key])
+                    if winner == self:
+                        wins += 1
+                win_rate = wins/number_of_test_games
+                epsiodes.append(episode)
+                win_rates.append(win_rate)
+                print("Episode: ", episode, " winrate: ", win_rate)
+
             done_counter = 4
             player = 0
             s = state.State()
@@ -134,9 +151,9 @@ class QAgent(agent.Agent):
 
                 self.replay += [
                     (o0, r*self.reward_scale, o_p3, done),
-                    (o1, -r*self.reward_scale/3, o_p0, False),
-                    (o2, -r*self.reward_scale/3, o_p1, False),
-                    (o3, -r*self.reward_scale/3, o_p2, False)
+                    (o1, -r*self.reward_scale, o_p0, False),
+                    (o2, -r*self.reward_scale, o_p1, False),
+                    (o3, -r*self.reward_scale, o_p2, False)
                 ]
 
                 x, y = self.sample_batch()
@@ -164,7 +181,6 @@ if __name__ == "__main__":
     from agents.one_look_ahead_agent import OneLookAheadAgent
 
     LOAD_MODEL = False
-
     if LOAD_MODEL:
         model = ks.models.load_model("temp.h5")
     else:
@@ -185,33 +201,45 @@ if __name__ == "__main__":
         model.compile(optimizer=ks.optimizers.Adam(0.0005), loss='mse')
     model.summary()
 
-    q_ag = QAgent(1, 2, model)
-
-    q_ag.train(1000, 1.0, 0.995)
+    q_ag = QAgent(0, 4, model, gamma=0.99)
 
     agents = [
-        OneLookAheadAgent(0, 2),
         q_ag,
+        OneLookAheadAgent(1, 4),
+        OneLookAheadAgent(2, 4),
+        OneLookAheadAgent(3, 4),
     ]
 
+    try:
+        q_ag.train(1000, 1.0, 0.995, test_every_n_epsiodes=50, number_of_test_games=20, test_against=agents[1:])
+    except KeyboardInterrupt:
+        pass
+
+
+
+    game.play_game(agents, True)
 
     model.save("temp.h5")
 
     scores = []
     wins = defaultdict(lambda: 0)
-    switched = False
+    # switched = False
     for i in range(100):
-        score = game.play_game(agents, False)
-        if switched:
-            score[0], score[1] = score[1], score[0]
+        score = game.play_game(agents, False, shuffle_agents=True)
 
-        agents = agents[::-1]
-        switched = not switched
-        for j, agent in enumerate(agents):
-            agent.index = j
+        score_list = []
+        for ag in agents:
+            score_list.append(score[ag])
+        # if switched:
+        #     score[0], score[1] = score[1], score[0]
 
-        scores.append(score)
-        winner = np.argmax(score)
+        # agents = agents[::-1]
+        # switched = not switched
+        # for j, agent in enumerate(agents):
+        #     agent.index = j
+
+        scores.append(score_list)
+        winner = np.argmax(score_list)
         wins[winner] += 1
         if i % 10 == 0:
             print(np.mean(np.array(scores), axis=0), "wins: ", wins)

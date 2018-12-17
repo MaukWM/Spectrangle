@@ -7,7 +7,17 @@ from agents.random_agent import RandomAgent
 from agents.human_agent import HumanAgent
 from agents.one_look_ahead_agent import OneLookAheadAgent
 
-def play_game(agents, visualise: bool):
+
+def play_game(agents, visualise: bool, shuffle_agents=False):
+    agents = agents[:]
+
+    if shuffle_agents:
+        random.shuffle(agents)
+
+    for i, agent in enumerate(agents):
+        agent.index = i
+        agent.n_players = len(agents)
+
     stop_point = -1
     s = state.State(len(agents))
     agent = 0
@@ -40,7 +50,7 @@ def play_game(agents, visualise: bool):
 
     if visualise:
         print(str(best_agent) + " wins!")
-    return s.scores
+    return {agents[i]: score for i, score in enumerate(s.scores)}
 
 
 if __name__=="__main__":
