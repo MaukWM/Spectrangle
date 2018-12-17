@@ -150,7 +150,7 @@ class State(object):
 
         matching = 0
         for c, nb_c in zip(colours, nb_colours):
-            if c == nb_c or c == triangle.Colour.WHITE or nb_c == triangle.Colour.WHITE:
+            if c == nb_c or c == triangle.Colour.WHITE and nb_c is not None or nb_c == triangle.Colour.WHITE:
                 matching += 1
         tile = self.get_tile(row, column)
         if self.initial:
