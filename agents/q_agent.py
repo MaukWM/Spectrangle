@@ -74,7 +74,7 @@ class QAgent(agent.Agent):
             , axis=0
         )
         values = self.model.predict(all_new_states)[:, 0]
-        values = np.array(rewards) + self.gamma * values
+        values = np.array(rewards)*self.reward_scale + self.gamma * values
         return possible_moves, values
 
     def sample_batch(self):
