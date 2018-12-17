@@ -180,7 +180,7 @@ class State(object):
         empty_tiles = self.get_all_empty_tiles()
         for hand_index, tri in enumerate(self.hands[player]):
             for row, column in empty_tiles:
-                if not self.initial or (self.initial and row, column not in bonus_set):
+                if not self.initial or (self.initial and (row, column) not in bonus_set):
                     nb_colours = self.get_neighbouring_tile_colours(row, column)
                     for rotation in range(3):
                         if self.initial or self.matches_colour(tri.rotate(rotation), nb_colours):
