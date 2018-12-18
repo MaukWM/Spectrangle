@@ -60,7 +60,7 @@ class QAgent(agent.Agent):
         self.model = model
         self.gamma = gamma
         self.replay = []
-        self.replay_size = 10000
+        self.replay_size = 100000
         self.reward_scale = reward_scale
 
         # Make fixed model
@@ -143,8 +143,10 @@ class QAgent(agent.Agent):
                 o3 = transform_state(s, 3, self.index)
 
                 print("Training episode ", episode, "epsilon: ", max(epsilon*(epsilon_decay_per_episode**episode), epsilon_min))
-
+                sum_loss = 0
+                steps = 0
                 while done_counter > 0:
+                    steps += 1
                     if random.random() > max(epsilon*(epsilon_decay_per_episode**episode), epsilon_min):
                         moves, values = self.get_moves_with_values(s, player)
                         i = int(np.argmax(values))
@@ -169,13 +171,19 @@ class QAgent(agent.Agent):
                     ]
 
                     x, y = self.sample_batch()
-                    self.model.fit(x, y, verbose=False)
+                    history = self.model.fit(x, y, verbose=False, batch_size=32)
+                    loss = history.history['loss']
+                    loss = np.mean(loss)
+                    sum_loss += loss
                     player = (player + 1) % 4
                     s = s_prime
                     o0 = o_p0
                     o1 = o_p1
                     o2 = o_p2
                     o3 = o_p3
+
+                mean_loss = sum_loss/steps
+                print("Mean training loss: ", mean_loss)
 
                 # Update fixed weights
                 self.fixed_model.set_weights(self.model.get_weights())
@@ -195,34 +203,36 @@ if __name__ == "__main__":
     from agents.one_look_ahead_agent import OneLookAheadAgent
     import matplotlib.pyplot as plt
 
-    LOAD_MODEL = False
+    LOAD_MODEL = True
     if LOAD_MODEL:
         model = ks.models.load_model("temp.h5")
     else:
+        reg = ks.regularizers.l2(0.00001)
+
         inp = ks.Input((1 + 3*4 + 3*36, 16))
         info = ks.layers.Lambda(lambda x: x[:, 0])(inp)
         hand = ks.layers.Lambda(lambda x: x[:, 1:3*4+1])(inp)
         board = ks.layers.Lambda(lambda x: x[:, 3*4+1:])(inp)
 
-        triangle_conv1 = ks.layers.Conv1D(64, 1, activation='selu')
-        triangle_conv2 = ks.layers.Conv1D(64, 3, strides=3, activation='selu')
-        triangle_conv3 = ks.layers.Conv1D(32, 1, strides=1, activation='selu')
+        triangle_conv1 = ks.layers.Conv1D(64, 1, activation='selu', kernel_regularizer=reg)
+        triangle_conv2 = ks.layers.Conv1D(256, 3, strides=3, activation='selu', kernel_regularizer=reg)
+        triangle_conv3 = ks.layers.Conv1D(128, 1, strides=1, activation='selu', kernel_regularizer=reg)
 
         board = triangle_conv1(board)
         triangles = triangle_conv2(board)
         triangles = triangle_conv3(triangles)
         board = ks.layers.Flatten()(triangles)
-        board = ks.layers.Dense(64, activation='selu')(board)
+        board = ks.layers.Dense(256, activation='selu', kernel_regularizer=reg)(board)
 
         hand = triangle_conv1(hand)
         hand = triangle_conv2(hand)
         hand = triangle_conv3(hand)
         hand = ks.layers.Flatten()(hand)
-        hand = ks.layers.Dense(24, activation='selu')(hand)
+        hand = ks.layers.Dense(64, activation='selu', kernel_regularizer=reg)(hand)
 
         x = ks.layers.Concatenate(axis=1)([info, hand, board])
-        x = ks.layers.Dense(64, activation='selu')(x)
-        x = ks.layers.Dense(32, activation='selu')(x)
+        x = ks.layers.Dense(256, activation='selu', kernel_regularizer=reg)(x)
+        x = ks.layers.Dense(32, activation='selu', kernel_regularizer=reg)(x)
         out = ks.layers.Dense(1, activation='linear')(x)
 
         model = ks.Model(inputs=inp, outputs=out)
@@ -239,7 +249,7 @@ if __name__ == "__main__":
     ]
 
     episodes, winrates = \
-        q_ag.train(200, 1.0, 0.97, epsilon_min=0.01, test_every_n_epsiodes=50, number_of_test_games=10, test_against=agents[1:])
+        q_ag.train(2000, 0.2, 0.997, epsilon_min=0.1, test_every_n_epsiodes=50, number_of_test_games=10, test_against=agents[1:])
 
     plt.plot(episodes, winrates)
     plt.xlabel("Episodes")

@@ -144,8 +144,11 @@ class State(object):
             board.append(row)
         return board
 
-    def calculate_score(self, row, column):
-        colours = self.get_tile_colours(row, column)
+    def calculate_score(self, row, column, tri=None):
+        if tri is None:
+            colours = self.get_tile_colours(row, column)
+        else:
+            colours = tri.colours
         nb_colours = self.get_neighbouring_tile_colours(row, column)
 
         matching = 0
@@ -155,10 +158,20 @@ class State(object):
         tile = self.get_tile(row, column)
         if self.initial:
             matching = 1
-        score = tile.contents.score
+        if tri is None:
+            score = tile.contents.score
+        else:
+            score = tri.score
         score *= matching
         score *= tile.bonus
         return score
+
+    def calculate_action_score(self, action, player):
+        if not isinstance(action, move.PlaceMove):
+            return 0
+        else:
+            tri = self.hands[player][action.hand_index].rotate(action.rotation)
+            return self.calculate_score(action.row, action.column, tri)
 
     def matches_colour(self, tri, nb_colours):
         matching = 0
