@@ -217,6 +217,7 @@ class State(object):
                     term_counter += 1
             if term_counter == self.players:
                 deduction_points = sum([x.score for x in self.hands[player]])
+                self.scores[player] -= deduction_points
                 return -deduction_points, True
             else:
                 return 0, False

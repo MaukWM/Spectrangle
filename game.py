@@ -50,7 +50,7 @@ def play_game(agents, visualise: bool, shuffle_agents=False, starting_agent_inde
 
     if visualise:
         print(str(best_agent) + " wins!")
-    return {agents[i]: score for i, score in enumerate(s.scores)}
+    return {agent: score for agent, score in zip(agents, s.scores)}
 
 
 if __name__=="__main__":

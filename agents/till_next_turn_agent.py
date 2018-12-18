@@ -41,3 +41,6 @@ class TillNextTurnAgent(agent.Agent):
                 best_action = a
                 best_values = values
         return best_action, best_values
+
+    def __repr__(self):
+        return "TillNextTurnAgent "+str(self.index)

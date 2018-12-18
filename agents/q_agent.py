@@ -50,18 +50,20 @@ def transform_state(s: state.State, turns_till_turn, player_index, zero_new_item
             for colour in s.hands[player_index][i].colours:
                 hand_state.append(c_to_oh(colour) + [0]*8)
 
-    info = [to_oh(turns_till_turn, 4) + [0]*(8+4)]
+    info = [to_oh(turns_till_turn, 4) + [s.scores[player_index]/100, max(s.scores)/100, int(max(s.scores) == s.scores[player_index])] + [0]*(8+1)]
     return np.array(info + hand_state + triangle_states)
 
 
 class QAgent(agent.Agent):
-    def __init__(self, index, n_players, model: ks.Model, gamma=1.0, reward_scale=1/100):
+    def __init__(self, index, n_players, model: ks.Model, gamma=1.0, reward_scale=1/100, use_win_rewards=False):
         super().__init__(index, n_players)
         self.model = model
         self.gamma = gamma
         self.replay = []
         self.replay_size = 100000
         self.reward_scale = reward_scale
+
+        self.use_win_rewards = use_win_rewards
 
         # Make fixed model
         self.fixed_model = ks.models.model_from_json(self.model.to_json())
@@ -84,7 +86,10 @@ class QAgent(agent.Agent):
             , axis=0
         )
         values = self.model.predict(all_new_states)[:, 0]
-        values = np.array(rewards)*self.reward_scale + self.gamma * values
+        if not self.use_win_rewards:
+            values = np.array(rewards)*self.reward_scale + self.gamma * values
+        else:
+            values = self.gamma * values
         return possible_moves, values
 
     def sample_batch(self):
@@ -137,10 +142,10 @@ class QAgent(agent.Agent):
                 done_counter = 4
                 player = 0
                 s = state.State()
-                o0 = transform_state(s, 0, self.index)
-                o1 = transform_state(s, 1, self.index)
-                o2 = transform_state(s, 2, self.index)
-                o3 = transform_state(s, 3, self.index)
+                o0 = transform_state(s, 0, 0)
+                o1 = transform_state(s, 1, 1)
+                o2 = transform_state(s, 2, 2)
+                o3 = transform_state(s, 3, 3)
 
                 print("Training episode ", episode, "epsilon: ", max(epsilon*(epsilon_decay_per_episode**episode), epsilon_min))
                 sum_loss = 0
@@ -158,13 +163,16 @@ class QAgent(agent.Agent):
                     if done:
                         done_counter -= 1
 
-                    o_p0 = transform_state(s_prime, 0, self.index)
-                    o_p1 = transform_state(s_prime, 1, self.index)
-                    o_p2 = transform_state(s_prime, 2, self.index)
-                    o_p3 = transform_state(s_prime, 3, self.index)
+                    o_p0 = transform_state(s_prime, 0, (player + 1) % 4)
+                    o_p1 = transform_state(s_prime, 1, (player + 2) % 4)
+                    o_p2 = transform_state(s_prime, 2, (player + 3) % 4)
+                    o_p3 = transform_state(s_prime, 3, (player + 0) % 4)
+
+                    if self.use_win_rewards:
+                        r = 0
 
                     self.replay += [
-                        (o0, r*self.reward_scale, o_p3, done),
+                        (o0, r*self.reward_scale, o_p3, False),
                         (o1, -r*self.reward_scale, o_p0, False),
                         (o2, -r*self.reward_scale, o_p1, False),
                         (o3, -r*self.reward_scale, o_p2, False)
@@ -181,6 +189,23 @@ class QAgent(agent.Agent):
                     o1 = o_p1
                     o2 = o_p2
                     o3 = o_p3
+
+                if self.use_win_rewards:
+                    winner = np.argmax(s.scores)
+                    winner_i = (winner - player)%4
+                    self.replay += [
+                        (o0, 1 if winner_i == 0 else -1, o0, True),
+                        (o1, 1 if winner_i == 1 else -1, o1, True),
+                        (o2, 1 if winner_i == 2 else -1, o2, True),
+                        (o3, 1 if winner_i == 3 else -1, o3, True)
+                    ]
+                else:
+                    self.replay += [
+                        (o0, 0, o0, True),
+                        (o1, 0, o1, True),
+                        (o2, 0, o2, True),
+                        (o3, 0, o3, True)
+                    ]
 
                 mean_loss = sum_loss/steps
                 print("Mean training loss: ", mean_loss)
@@ -205,7 +230,7 @@ if __name__ == "__main__":
 
     LOAD_MODEL = True
     if LOAD_MODEL:
-        model = ks.models.load_model("temp.h5")
+        model = ks.models.load_model("big_net.h5")
     else:
         reg = ks.regularizers.l2(0.00001)
 
@@ -233,13 +258,13 @@ if __name__ == "__main__":
         x = ks.layers.Concatenate(axis=1)([info, hand, board])
         x = ks.layers.Dense(256, activation='selu', kernel_regularizer=reg)(x)
         x = ks.layers.Dense(32, activation='selu', kernel_regularizer=reg)(x)
-        out = ks.layers.Dense(1, activation='linear')(x)
+        out = ks.layers.Dense(1, activation='tanh')(x)
 
         model = ks.Model(inputs=inp, outputs=out)
         model.compile(optimizer=ks.optimizers.Adam(0.0001), loss='mse')
     model.summary()
 
-    q_ag = QAgent(0, 4, model, gamma=0.99)
+    q_ag = QAgent(0, 4, model, gamma=0.99, use_win_rewards=False)
 
     agents = [
         q_ag,
@@ -249,7 +274,7 @@ if __name__ == "__main__":
     ]
 
     episodes, winrates = \
-        q_ag.train(2000, 0.2, 0.997, epsilon_min=0.1, test_every_n_epsiodes=50, number_of_test_games=10, test_against=agents[1:])
+        q_ag.train(2000, 0.2, 0.992, epsilon_min=0.1, test_every_n_epsiodes=50, number_of_test_games=10, test_against=agents[1:])
 
     plt.plot(episodes, winrates)
     plt.xlabel("Episodes")

@@ -9,10 +9,10 @@ from agents.q_agent import QAgent
 from agents.till_next_turn_agent import TillNextTurnAgent
 
 agents = [
-    QAgent(0, 4, ks.models.load_model("big_net.h5"), gamma=0.99),
-    TillNextTurnAgent(1, 4, 15, deeper_top_n=2),
-    TillNextTurnAgent(2, 4, 15, deeper_top_n=2),
-    OneLookAheadAgent(3, 4)
+    QAgent(0, 4, ks.models.load_model("win_loss_model.h5"), gamma=0.99, use_win_rewards=True),
+    QAgent(1, 4, ks.models.load_model("big_net.h5"), gamma=0.99, use_win_rewards=False),
+    # TillNextTurnAgent(2, 4, 15, deeper_top_n=2),
+    # OneLookAheadAgent(3, 4)
 ]
 
 game.play_game(agents, True, shuffle_agents=True)
