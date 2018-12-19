@@ -26,6 +26,23 @@ def c_to_oh(c):
     return out
 
 
+def softmax(v, temperature):
+    exps = np.exp(v/temperature)
+    return exps/np.sum(exps)
+
+def transform_hand(hand, zero_new_item):
+    hand_state = []
+    for i in range(4):
+        if len(hand) <= i:
+            hand_state += [c_to_oh(None) + [0]*8]*3
+        elif i == 3 and zero_new_item:
+            hand_state += [[0]*16]*3
+        else:
+            for colour in hand[i].colours:
+                hand_state.append(c_to_oh(colour) + [0]*8)
+    return hand_state
+
+
 def transform_state(s: state.State, turns_till_turn, player_index, zero_new_item=False):
     # Triangles:
 
@@ -40,18 +57,13 @@ def transform_state(s: state.State, turns_till_turn, player_index, zero_new_item
                 oh_array = c_to_oh(c) + c_to_oh(nb_c)
                 triangle_states.append(oh_array)
 
-    hand_state = []
-    for i in range(4):
-        if len(s.hands[player_index]) <= i:
-            hand_state += [c_to_oh(None) + [0]*8]*3
-        elif i == 3 and zero_new_item:
-            hand_state += [[0]*16]*3
-        else:
-            for colour in s.hands[player_index][i].colours:
-                hand_state.append(c_to_oh(colour) + [0]*8)
+    hand_state = transform_hand(s.hands[player_index], zero_new_item)
+    hand_state_1 = transform_hand(s.hands[(player_index+1)%4], False)
+    hand_state_2 = transform_hand(s.hands[(player_index+2)%4], False)
+    hand_state_3 = transform_hand(s.hands[(player_index+3)%4], False)
 
     info = [to_oh(turns_till_turn, 4) + [s.scores[player_index]/100, max(s.scores)/100, int(max(s.scores) == s.scores[player_index])] + [0]*(8+1)]
-    return np.array(info + hand_state + triangle_states)
+    return np.array(info + hand_state + hand_state_1 + hand_state_2 + hand_state_3 + triangle_states)
 
 
 class QAgent(agent.Agent):
@@ -118,7 +130,19 @@ class QAgent(agent.Agent):
             targets[i, 0] = vps[i]
         return states, targets
 
-    def train(self, epochs, epsilon, epsilon_decay_per_episode, epsilon_min, test_against=[], test_every_n_epsiodes=10, number_of_test_games=10):
+    def train(self, epochs, epsilon, epsilon_decay_per_episode, epsilon_min, test_against=[], test_every_n_epsiodes=10, number_of_test_games=10, use_softmax_with_temperature=False):
+        """
+        Trains the Agent
+        :param epochs: Number of epochs/episodes
+        :param epsilon: Starting exploration rate (when using softmax this is used as temperature)
+        :param epsilon_decay_per_episode: After every episode epsilon is multiplied with this factor
+        :param epsilon_min: The minimum value for epsilon
+        :param test_against: Test agents used to determine winrates
+        :param test_every_n_epsiodes: Number of episodes between evaluation
+        :param number_of_test_games: Number of test games per evaluation (each game is played 4 times to vary start positions!)
+        :param use_softmax_with_temperature: If true: use softmax with the epsilon as temperature. This allows for more directed exploration
+        :return: tuple of 2 lists: episode numbers and winrate for that moment in time
+        """
         win_rates = []
         epsiodes = []
         try:
@@ -152,12 +176,24 @@ class QAgent(agent.Agent):
                 steps = 0
                 while done_counter > 0:
                     steps += 1
-                    if random.random() > max(epsilon*(epsilon_decay_per_episode**episode), epsilon_min):
-                        moves, values = self.get_moves_with_values(s, player)
-                        i = int(np.argmax(values))
-                        mv = moves[i]
+                    if not use_softmax_with_temperature:
+                        if random.random() > max(epsilon*(epsilon_decay_per_episode**episode), epsilon_min):
+                            moves, values = self.get_moves_with_values(s, player)
+                            i = int(np.argmax(values))
+                            mv = moves[i]
+                        else:
+                            mv = random.choice(list(s.get_all_possible_moves(player)))
                     else:
-                        mv = random.choice(list(s.get_all_possible_moves(player)))
+                        moves, values = self.get_moves_with_values(s, player)
+                        X = random.random()
+                        probs = softmax(values, max(epsilon*(epsilon_decay_per_episode**episode), epsilon_min))
+
+                        cum_prob = 0
+                        mv = moves[-1]
+                        for index, p in enumerate(probs):
+                            cum_prob += p
+                            if cum_prob > X:
+                                mv = moves[index]
 
                     s_prime, r, done = s.generate_step(mv, player)
                     if done:
@@ -228,43 +264,43 @@ if __name__ == "__main__":
     from agents.one_look_ahead_agent import OneLookAheadAgent
     import matplotlib.pyplot as plt
 
-    LOAD_MODEL = True
+    LOAD_MODEL = False
     if LOAD_MODEL:
-        model = ks.models.load_model("big_net.h5")
+        model = ks.models.load_model("temp.h5")
     else:
-        reg = ks.regularizers.l2(0.00001)
+        reg = ks.regularizers.l2(0.00005)
 
-        inp = ks.Input((1 + 3*4 + 3*36, 16))
+        inp = ks.Input((1 + 3*4*4 + 3*36, 16))
         info = ks.layers.Lambda(lambda x: x[:, 0])(inp)
-        hand = ks.layers.Lambda(lambda x: x[:, 1:3*4+1])(inp)
-        board = ks.layers.Lambda(lambda x: x[:, 3*4+1:])(inp)
+        hand = ks.layers.Lambda(lambda x: x[:, 1:3*4*4+1])(inp)
+        board = ks.layers.Lambda(lambda x: x[:, 3*4*4+1:])(inp)
 
-        triangle_conv1 = ks.layers.Conv1D(64, 1, activation='selu', kernel_regularizer=reg)
-        triangle_conv2 = ks.layers.Conv1D(256, 3, strides=3, activation='selu', kernel_regularizer=reg)
-        triangle_conv3 = ks.layers.Conv1D(128, 1, strides=1, activation='selu', kernel_regularizer=reg)
+        triangle_conv1 = ks.layers.Conv1D(24, 1, activation='selu', kernel_regularizer=reg)
+        triangle_conv2 = ks.layers.Conv1D(64, 3, strides=3, activation='selu', kernel_regularizer=reg)
+        triangle_conv3 = ks.layers.Conv1D(32, 1, strides=1, activation='selu', kernel_regularizer=reg)
 
         board = triangle_conv1(board)
         triangles = triangle_conv2(board)
         triangles = triangle_conv3(triangles)
         board = ks.layers.Flatten()(triangles)
-        board = ks.layers.Dense(256, activation='selu', kernel_regularizer=reg)(board)
+        board = ks.layers.Dense(128, activation='selu', kernel_regularizer=reg)(board)
 
         hand = triangle_conv1(hand)
         hand = triangle_conv2(hand)
         hand = triangle_conv3(hand)
         hand = ks.layers.Flatten()(hand)
-        hand = ks.layers.Dense(64, activation='selu', kernel_regularizer=reg)(hand)
+        hand = ks.layers.Dense(24, activation='selu', kernel_regularizer=reg)(hand)
 
         x = ks.layers.Concatenate(axis=1)([info, hand, board])
-        x = ks.layers.Dense(256, activation='selu', kernel_regularizer=reg)(x)
+        x = ks.layers.Dense(64, activation='selu', kernel_regularizer=reg)(x)
         x = ks.layers.Dense(32, activation='selu', kernel_regularizer=reg)(x)
-        out = ks.layers.Dense(1, activation='tanh')(x)
+        out = ks.layers.Dense(1, activation='linear')(x)
 
         model = ks.Model(inputs=inp, outputs=out)
         model.compile(optimizer=ks.optimizers.Adam(0.0001), loss='mse')
     model.summary()
 
-    q_ag = QAgent(0, 4, model, gamma=0.99, use_win_rewards=False)
+    q_ag = QAgent(0, 4, model, gamma=0.93, use_win_rewards=False)
 
     agents = [
         q_ag,
@@ -274,7 +310,7 @@ if __name__ == "__main__":
     ]
 
     episodes, winrates = \
-        q_ag.train(2000, 0.2, 0.992, epsilon_min=0.1, test_every_n_epsiodes=50, number_of_test_games=10, test_against=agents[1:])
+        q_ag.train(2000, 0.3, 0.97, epsilon_min=0.005, test_every_n_epsiodes=50, number_of_test_games=10, test_against=agents[1:], use_softmax_with_temperature=True)
 
     plt.plot(episodes, winrates)
     plt.xlabel("Episodes")
